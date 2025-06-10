@@ -1,0 +1,34 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Daily",
+        "repositoryURL": "https://github.com/daily-co/daily-client-ios.git",
+        "state": {
+          "branch": null,
+          "revision": "431938db25e5807120e89e2dc5bab1c076729f59",
+          "version": "0.31.0"
+        }
+      },
+      {
+        "package": "PipecatClientIOS",
+        "repositoryURL": "https://github.com/pipecat-ai/pipecat-client-ios.git",
+        "state": {
+          "branch": null,
+          "revision": "992641fb5f7d1a794ecfc33babb5fe36e2a8ffdd",
+          "version": "0.3.5"
+        }
+      },
+      {
+        "package": "PipecatClientIOSDaily",
+        "repositoryURL": "https://github.com/pipecat-ai/pipecat-client-ios-daily.git",
+        "state": {
+          "branch": null,
+          "revision": "a337fe6642c52376d2f90eafcb965f5be772ce72",
+          "version": "0.3.2"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
