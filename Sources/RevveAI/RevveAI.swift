@@ -14,16 +14,22 @@ public class RevveAI {
     public weak var delegate: RevveAIDelegate?
     
     private let apiKey: String
-    private let baseURL: URL
+    /// The base URL for API requests.
+    /// Defaults to "https://app.revve.ai" if not specified during initialization.
+    public let baseURL: URL
     private let apiClient: APIClient
     private var rtviClient: RTVIClient?
     private var isActive = false
     private var audioSession: AVAudioSession { AVAudioSession.sharedInstance() }
     
-    /// Initialize RevveAI with your API key
+    /// Initialize RevveAI with your API key and optional custom base URL
     /// - Parameters:
     ///   - apiKey: Your RevveAI API key
-    ///   - baseURL: (Optional) Base URL for the API. Defaults to https://app.revve.ai
+    ///   - baseURL: Base URL for the API. Defaults to "https://app.revve.ai".
+    ///     Use this to specify a custom hostname for development or testing environments.
+    ///     Example: `URL(string: "http://localhost:3000")`
+    /// - Note: The baseURL should include the scheme (http/https) and hostname,
+    ///   but no trailing slash.
     public init(apiKey: String, baseURL: URL = URL(string: "https://app.revve.ai")!) {
         self.apiKey = apiKey
         self.baseURL = baseURL
@@ -51,17 +57,8 @@ public class RevveAI {
                 // Configure audio session
                 self.configureAudioSession()
                 
-                // Create call via API
-                self.apiClient.createCall(assistantId: assistantId, metadata: metadata) { [weak self] result in
-                    guard let self = self else { return }
-                    
-                    switch result {
-                    case .success(let callInfo):
-                        self.initializeRTVIClient(with: callInfo, completion: completion)
-                    case .failure(let error):
-                        completion(.failure(error))
-                    }
-                }
+                // Initialize RTVIClient directly without API call
+                self.initializeRTVIClient(assistantId: assistantId, completion: completion)
             }
         }
     }
@@ -86,20 +83,30 @@ public class RevveAI {
     // MARK: - Private Methods
     
     @MainActor
-    private func initializeRTVIClient(with callInfo: CallInfo, completion: @escaping (Result<Void, Error>) -> Void) {
-        // Configure RTVIClient with the call URL
+    private func initializeRTVIClient(assistantId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        // Configure RTVIClient with the specified parameters
+        let rtviClientParams = RTVIClientParams(
+            baseUrl: baseURL.absoluteString,
+            headers: [["Authorization": "Bearer \(apiKey)"]],
+            endpoints: RTVIURLEndpoints(
+                connect: "/api/voice-agents/\(assistantId)/web-calls",
+                action: ""
+            )
+        )
+        
         let rtviClientOptions = RTVIClientOptions(
             enableMic: true,
             enableCam: false,
-            params: RTVIClientParams(
-                baseUrl: callInfo.transport.callUrl,
-                endpoints: RTVIURLEndpoints(connect: "")
-            )
+            params: rtviClientParams,
+            services: [:],
+            config: nil,
+            customHeaders: nil,
+            customBodyParams: nil
         )
         
         let transport = DailyTransport(options: rtviClientOptions)
         let rtviClient = RTVIClient(
-            baseUrl: callInfo.transport.callUrl,
+            baseUrl: baseURL.absoluteString,
             transport: transport,
             options: rtviClientOptions
         )

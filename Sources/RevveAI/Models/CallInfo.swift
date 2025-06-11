@@ -1,20 +1,15 @@
 import Foundation
 
 public struct CallInfo: Decodable {
-    public let id: String
-    public let orgId: String
-    public let type: String
-    public let transport: TransportInfo
-    public let webCallUrl: String
-    public let status: String
-    public let assistantId: String
-    public let createdAt: String
-    public let updatedAt: String
+    /// The URL of the room to connect to
+    public let roomUrl: String
     
-    public struct TransportInfo: Decodable {
-        public let provider: String
-        public let assistantVideoEnabled: Bool
-        public let callUrl: String
+    /// The authentication token for the room
+    public let token: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case roomUrl = "room_url"
+        case token
     }
 }
 

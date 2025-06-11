@@ -65,9 +65,22 @@ class APIClient {
             do {
                 let decoder = JSONDecoder()
                 decoder.keyDecodingStrategy = .convertFromSnakeCase
+                
+                // Log the raw JSON string for debugging
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("[RevveAI] Raw server response: \(jsonString)")
+                }
+                
                 let callInfo = try decoder.decode(CallInfo.self, from: data)
+                
+                // Log the parsed CallInfo
+                print("[RevveAI] Parsed CallInfo:")
+                print("  - Room URL: \(callInfo.roomUrl)")
+                print("  - Token: \(callInfo.token)")
+                
                 completion(.success(callInfo))
             } catch {
+                print("[RevveAI] Failed to decode response: \(error)")
                 completion(.failure(error))
             }
         }
