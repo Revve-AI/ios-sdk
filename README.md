@@ -16,7 +16,7 @@ Add the following to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/revve-ai-ios-sdk.git", from: "1.0.0")
+    .package(url: "https://github.com/Revve-AI/ios-sdk.git", from: "0.0.1")
 ]
 ```
 

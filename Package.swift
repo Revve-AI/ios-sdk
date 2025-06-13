@@ -14,15 +14,13 @@ let package = Package(
     ],
     
     dependencies: [
-        .package(url: "https://github.com/pipecat-ai/pipecat-client-ios.git", from: "0.3.0"),
-        .package(url: "https://github.com/pipecat-ai/pipecat-client-ios-daily.git", from: "0.3.0"),
+        .package(url: "https://github.com/livekit/client-sdk-swift.git", from: "2.5.0"), // Core SDK
     ],
     targets: [
         .target(
             name: "RevveAI",
             dependencies: [
-                .product(name: "PipecatClientIOS", package: "pipecat-client-ios"),
-                .product(name: "PipecatClientIOSDaily", package: "pipecat-client-ios-daily")
+                .product(name: "LiveKit", package: "client-sdk-swift"),
             ],
             path: "Sources/RevveAI"
         ),
