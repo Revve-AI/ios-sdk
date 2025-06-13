@@ -99,7 +99,7 @@ class APIClient {
         let url = baseURL
             .appendingPathComponent("api/voice-agents")
             .appendingPathComponent(assistantId)
-            .appendingPathComponent("inbound-web-calls")
+            .appendingPathComponent("web-calls")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
