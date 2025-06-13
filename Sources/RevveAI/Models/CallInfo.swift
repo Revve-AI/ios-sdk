@@ -13,6 +13,20 @@ public struct CallInfo: Decodable {
     }
 }
 
+public struct ConnectionDetails: Decodable {
+    /// The LiveKit server URL
+    public let serverUrl: String
+    
+    /// The room name to join
+    public let roomName: String
+    
+    /// The participant token for authentication
+    public let participantToken: String
+    
+    /// The participant name/identity
+    public let participantName: String
+}
+
 public enum RevveAIError: Error {
     case invalidURL
     case invalidResponse

@@ -1,7 +1,6 @@
 import Foundation
 import AVFoundation
-import PipecatClientIOS
-import PipecatClientIOSDaily
+import LiveKit
 
 public protocol RevveAIDelegate: AnyObject {
     func revveAIDidStartCall(_ revveAI: RevveAI)
@@ -18,7 +17,7 @@ public class RevveAI {
     /// Defaults to "https://app.revve.ai" if not specified during initialization.
     public let baseURL: URL
     private let apiClient: APIClient
-    private var rtviClient: RTVIClient?
+    private var room: Room?
     private var isActive = false
     private var audioSession: AVAudioSession { AVAudioSession.sharedInstance() }
     
@@ -57,8 +56,8 @@ public class RevveAI {
                 // Configure audio session
                 self.configureAudioSession()
                 
-                // Initialize RTVIClient directly without API call
-                self.initializeRTVIClient(assistantId: assistantId, completion: completion)
+                // Fetch connection details and initialize LiveKit
+                self.fetchConnectionDetailsAndConnect(assistantId: assistantId, metadata: metadata, completion: completion)
             }
         }
     }
@@ -72,51 +71,47 @@ public class RevveAI {
             return
         }
         
-        rtviClient?.disconnect(completion: { [weak self] _ in
-            Task { @MainActor in
-                await self?.cleanup()
-                completion?(.success(()))
-            }
-        })
+        Task {
+            await room?.disconnect()
+            await self.cleanup()
+            completion?(.success(()))
+        }
     }
     
     // MARK: - Private Methods
     
     @MainActor
-    private func initializeRTVIClient(assistantId: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        // Configure RTVIClient with the specified parameters
-        let rtviClientParams = RTVIClientParams(
-            baseUrl: baseURL.absoluteString,
-            headers: [["Authorization": "Bearer \(apiKey)"]],
-            endpoints: RTVIURLEndpoints(
-                connect: "/api/voice-agents/\(assistantId)/web-calls",
-                action: ""
-            )
-        )
+    private func fetchConnectionDetailsAndConnect(assistantId: String, metadata: [String: String]?, completion: @escaping (Result<Void, Error>) -> Void) {
+        apiClient.getConnectionDetails(assistantId: assistantId, metadata: metadata) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let connectionDetails):
+                Task { @MainActor in
+                    await self.connectToLiveKit(connectionDetails: connectionDetails, completion: completion)
+                }
+            case .failure(let error):
+                Task { @MainActor in
+                    self.delegate?.revveAI(self, didFailWithError: error)
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+    
+    @MainActor
+    private func connectToLiveKit(connectionDetails: ConnectionDetails, completion: @escaping (Result<Void, Error>) -> Void) {
+        let room = Room()
+        self.room = room
         
-        let rtviClientOptions = RTVIClientOptions(
-            enableMic: true,
-            enableCam: false,
-            params: rtviClientParams,
-            services: [:],
-            config: nil,
-            customHeaders: nil,
-            customBodyParams: nil
-        )
-        
-        let transport = DailyTransport(options: rtviClientOptions)
-        let rtviClient = RTVIClient(
-            baseUrl: baseURL.absoluteString,
-            transport: transport,
-            options: rtviClientOptions
-        )
-        
-        self.rtviClient = rtviClient
-        
-        // Start the client
-        Task { @MainActor in
+        Task {
             do {
-                try await rtviClient.start()
+                try await room.connect(
+                    url: connectionDetails.serverUrl,
+                    token: connectionDetails.participantToken,
+                    connectOptions: ConnectOptions(enableMicrophone: true)
+                )
+                
                 self.isActive = true
                 self.delegate?.revveAIDidStartCall(self)
                 completion(.success(()))
@@ -149,10 +144,10 @@ public class RevveAI {
     private func cleanup() async {
         isActive = false
         
-        // Release the RTVIClient if it exists
-        if let rtviClient = rtviClient {
-            await rtviClient.release()
-            self.rtviClient = nil
+        // Disconnect from LiveKit room if connected
+        if let room = room {
+            await room.disconnect()
+            self.room = nil
         }
         
         // Deactivate audio session
